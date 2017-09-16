@@ -3,6 +3,10 @@ package top.huyuxin.handledemo;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyEvent;
+
+/**
+ * 摇杆事件转换为按键
+ */
 public class JoystickDevice {
 
     final public static int       STICK_NONE           = 0;

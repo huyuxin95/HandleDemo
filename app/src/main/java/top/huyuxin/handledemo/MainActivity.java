@@ -37,6 +37,7 @@ public class MainActivity extends AppCompatActivity  {
         super.onResume();
         GamePadManager.getInstance(getApplicationContext()).registOnPlayerListener(mOnPlayerLilstener);
         JoystickDevice.setOnDpadKeyListener(dpadKeyEventLinster);
+        GamePadManager.getInstance(this).switchContext(this);
     }
 
     @Override
@@ -62,18 +63,11 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent ev) {
         //将事件分发的key传入手柄sdk     返回的值就是经过手柄SDK映射完成后的值
-        Log.d(TAG, "dispatchGenericMotionEvent:" + ev.toString());
         ev = GamePadManager.getInstance(this).dispatchGenericMotionEvent(ev);
-//        if (!InputDeviceUtils.isValueMotionEvent(ev)) {
-//            return true;
-//        }
-        Log.d(TAG, "dispatchGenericMotionEvent:------映射完成后" + ev.toString());
-        SparseArray<Float> map = new SparseArray<Float>();
-        map.put(0, ev.getAxisValue(0));
-        map.put(1, ev.getAxisValue(1));
-        map.put(15, ev.getAxisValue(15));
-        map.put(16, ev.getAxisValue(16));
-        JoystickDevice.getInstance().handleMotionEvent(0, map);
+        //return 的 ev KeyCode KEYCODE_UNKNOWN
+        if (!InputDeviceUtils.isValueMotionEvent(ev)) {
+            return true;
+        }
         return super.dispatchGenericMotionEvent(ev);
     }
 
@@ -85,8 +79,8 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         //将事件分发的key传入手柄sdk
-        Log.d(TAG, "dispatchKeyEvent:" + event.toString());
         event = GamePadManager.getInstance(this).dispatchKeyEvent(event);
+        //return 的 event KeyCode KEYCODE_UNKNOWN
         // 不向下分发无意义的事件
         if (!InputDeviceUtils.isValueKeyEvent(event)) {
             return true;
@@ -99,9 +93,6 @@ public class MainActivity extends AppCompatActivity  {
         if (event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
             Reflect.on(event).set("mKeyCode", KeyEvent.KEYCODE_BUTTON_A);
         }
-        Log.d(TAG, "dispatchKeyEvent:------映射完成后" + event.toString());
-
-        JoystickDevice.getInstance().handleKeyEvent(0,event);
         return super.dispatchKeyEvent(event);
     }
 
@@ -132,15 +123,21 @@ public class MainActivity extends AppCompatActivity  {
         }
 
         /**
-         * 通过摇杆控制游戏
+         * 真实手柄的摇杆事件
          * @param player 玩家
          * @param ev
          * @return
          */
         @Override
         public boolean onPlayerMotionEvent(Player player, MotionEvent ev) {
-            Log.d(TAG,"OnPlayerListenerImp:MotionEvent:"+ev);
+            Log.d(TAG,"OnPlayerListenerImp:MotionEvent映射后:"+ev);
             //摇杆的响应不能有延迟 通常不超过1ms为最佳   否则会造成摇杆事件丢失
+            SparseArray<Float> map = new SparseArray<Float>();
+            map.put(0, ev.getAxisValue(0));
+            map.put(1, ev.getAxisValue(1));
+            map.put(15, ev.getAxisValue(15));
+            map.put(16, ev.getAxisValue(16));
+            JoystickDevice.getInstance().handleMotionEvent(player.id, map);
             return true;
         }
         /**
@@ -151,21 +148,19 @@ public class MainActivity extends AppCompatActivity  {
         @Override
         public boolean onPlayerKeyEvent(Player player, KeyEvent ev) {
             //按键的响应不能有延迟,通常不超过2ms为最佳  否则会造成按键丢失
-            Log.d(TAG,"OnPlayerListenerImp:KeyEvent:"+ev);
-            Log.d(TAG, "dispatchKeyEvent:------映射完成后" + ev.toString());
-
-            JoystickDevice.getInstance().handleKeyEvent(0,ev);
+            JoystickDevice.getInstance().handleKeyEvent(player.id,ev);
             return true;
         }
     }
 
     /**
+     *所有的手柄(真实手柄和虚拟手柄)响应事件统一在这里处理
      *
      */
     class DpadKeyEventLinster implements JoystickDevice.OnDpadKeyEventLinster{
         @Override
         public void onDpadKey(int player, KeyEvent event) {
-            Log.e(TAG,"DpadKeyEventLinster,event:"+event);
+            Log.e(TAG,"DpadKeyEventLinster,event########*********:"+event);
         }
     }
 
